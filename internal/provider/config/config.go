@@ -69,6 +69,86 @@ func (c Config) IsAKubernetesDistributionEnabled() bool {
 	return c.IsK3sAgentEnabled() || c.IsK3sEnabled() || c.IsK0sEnabled() || c.IsK0sWorkerEnabled()
 }
 
+func (c Config) K8sServiceName() string {
+	if c.IsK3sAgentEnabled() {
+		return "k3s-agent"
+	}
+
+	if c.IsK3sEnabled() {
+		return "k3s"
+	}
+
+	if c.IsK0sEnabled() {
+		return "k0scontroller"
+	}
+
+	if c.IsK0sWorkerEnabled() {
+		return "k0sworker"
+	}
+
+	return ""
+}
+
+func (c Config) K8sNodeRole() string {
+	if c.IsK3sAgentEnabled() {
+		return "agent"
+	}
+
+	if c.IsK3sEnabled() {
+		return "server"
+	}
+
+	if c.IsK0sEnabled() {
+		return "controller"
+	}
+
+	if c.IsK0sWorkerEnabled() {
+		return "worker"
+	}
+
+	return ""
+}
+
+func (c Config) K8sEnv() map[string]string {
+	if c.IsK3sEnabled() {
+		return c.K3s.Env
+	}
+
+	if c.IsK3sAgentEnabled() {
+		return c.K3sAgent.Env
+	}
+
+	if c.IsK0sEnabled() {
+		return c.K0s.Env
+	}
+
+	if c.IsK0sWorkerEnabled() {
+		return c.K0sWorker.Env
+	}
+
+	return nil
+}
+
+func (c Config) K8sArgs() []string {
+	if c.IsK3sEnabled() {
+		return c.K3s.Args
+	}
+
+	if c.IsK3sAgentEnabled() {
+		return c.K3sAgent.Args
+	}
+
+	if c.IsK0sEnabled() {
+		return c.K0s.Args
+	}
+
+	if c.IsK0sWorkerEnabled() {
+		return c.K0sWorker.Args
+	}
+
+	return nil
+}
+
 type KubeVIP struct {
 	Args        []string `yaml:"args,omitempty"`
 	EIP         string   `yaml:"eip,omitempty"`
@@ -101,6 +181,15 @@ type HA struct {
 	MasterNodes *int   `yaml:"master_nodes,omitempty"`
 }
 
+type K8sConfig struct {
+	Env              map[string]string `yaml:"env,omitempty"`
+	ReplaceEnv       bool              `yaml:"replace_env,omitempty"`
+	ReplaceArgs      bool              `yaml:"replace_args,omitempty"`
+	Args             []string          `yaml:"args,omitempty"`
+	Enabled          bool              `yaml:"enabled,omitempty"`
+	EmbeddedRegistry bool              `yaml:"embedded_registry,omitempty"`
+}
+
 type K3s struct {
 	Env              map[string]string `yaml:"env,omitempty"`
 	ReplaceEnv       bool              `yaml:"replace_env,omitempty"`
@@ -114,6 +203,14 @@ func (k K3s) IsEnabled() bool {
 	return k.Enabled
 }
 
+func (k K3s) AppendArgs(other []string) []string {
+	if k.ReplaceArgs {
+		return k.Args
+	}
+
+	return append(other, k.Args...)
+}
+
 type K0s struct {
 	Env              map[string]string `yaml:"env,omitempty"`
 	ReplaceEnv       bool              `yaml:"replace_env,omitempty"`
@@ -125,4 +222,12 @@ type K0s struct {
 
 func (k K0s) IsEnabled() bool {
 	return k.Enabled
+}
+
+func (k K0s) AppendArgs(other []string) []string {
+	if k.ReplaceArgs {
+		return k.Args
+	}
+
+	return append(other, k.Args...)
 }

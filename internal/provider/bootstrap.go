@@ -173,33 +173,10 @@ func oneTimeBootstrap(l types.KairosLogger, c *providerConfig.Config, vpnSetupFN
 		return nil
 	}
 
-	if c.IsK3sAgentEnabled() {
-		svcName = "k3s-agent"
-		svcRole = "agent"
-		svcEnv = c.K3sAgent.Env
-		args = strings.Join(c.K3sAgent.Args, " ")
-	}
-
-	if c.IsK3sEnabled() {
-		svcName = "k3s"
-		svcRole = "server"
-		svcEnv = c.K3s.Env
-		args = strings.Join(c.K3s.Args, " ")
-	}
-
-	if c.IsK0sEnabled() {
-		svcName = "k0scontroller"
-		svcRole = "controller"
-		svcEnv = c.K0s.Env
-		args = strings.Join(c.K0s.Args, " ")
-	}
-
-	if c.IsK0sWorkerEnabled() {
-		svcName = "k0sworker"
-		svcRole = "worker"
-		svcEnv = c.K0sWorker.Env
-		args = strings.Join(c.K0sWorker.Args, " ")
-	}
+	svcName = c.K8sServiceName()
+	svcRole = c.K8sNodeRole()
+	svcEnv = c.K8sEnv()
+	args = strings.Join(c.K8sArgs(), " ")
 
 	if c.IsK3sDistributionEnabled() {
 		envFile = machine.K3sEnvUnit(svcName)
