@@ -37,7 +37,26 @@ func propagateMasterData(ip string, c *service.RoleConfig, clusterInit, ha bool,
 		return nil
 	}
 
+	var svcName string
+
+	if pconfig.P2P.Distribution != "" {
+		svcName = pconfig.P2P.Distribution
+	}
+
 	if pconfig.IsK3sEnabled() {
+		svcName = "k3s"
+	}
+
+	if pconfig.IsK0sEnabled() {
+		svcName = "k0s"
+	}
+
+	if svcName == "" {
+		c.Logger.Info("No distribution found, defaulting to k3s")
+		svcName = "k3s"
+	}
+
+	if svcName == "k3s" {
 		tokenB, err := os.ReadFile("/var/lib/rancher/k3s/server/node-token")
 		if err != nil {
 			c.Logger.Error(err)
@@ -67,13 +86,14 @@ func propagateMasterData(ip string, c *service.RoleConfig, clusterInit, ha bool,
 		}
 	}
 
-	if pconfig.IsK0sEnabled() {
+	if svcName == "k0s" {
 		controllerToken, err := utils.SH(fmt.Sprintf("k0s token create --role=controller")) //nolint:errcheck
 		if err != nil {
 			c.Logger.Error(err)
 		}
 
 		if controllerToken != "" {
+			c.Logger.Info("controller token is ", controllerToken)
 			err := c.Client.Set("controllertoken", "token", controllerToken)
 			if err != nil {
 				c.Logger.Error(err)
