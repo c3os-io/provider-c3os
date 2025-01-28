@@ -313,11 +313,11 @@ func Master(cc *config.Config, pconfig *providerConfig.Config, clusterInit, ha b
 
 		var k8sBin string
 
-		if pconfig.IsK3sEnabled() {
+		if svcName == "k3s" {
 			k8sBin = utils.K3sBin()
 		}
 
-		if pconfig.IsK0sEnabled() {
+		if svcName == "k0s" {
 			k8sBin = utils.K0sBin()
 		}
 
