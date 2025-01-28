@@ -87,12 +87,14 @@ func propagateMasterData(ip string, c *service.RoleConfig, clusterInit, ha bool,
 	}
 
 	if svcName == "k0s" {
-		controllerToken, err := utils.SH(fmt.Sprintf("k0s token create --role=controller")) //nolint:errcheck
+		controllerToken, err := utils.SH("k0s token create --role=controller") //nolint:errcheck
 		if err != nil {
-			c.Logger.Error(err)
+			c.Logger.Errorf("failed to create controller token: %s", err)
 		}
 
-		if controllerToken != "" {
+		// we don't want to set the output if there is an error
+		if err == nil && controllerToken != "" {
+			// TODO: remove logger
 			c.Logger.Info("controller token is ", controllerToken)
 			err := c.Client.Set("controllertoken", "token", controllerToken)
 			if err != nil {
@@ -100,18 +102,19 @@ func propagateMasterData(ip string, c *service.RoleConfig, clusterInit, ha bool,
 			}
 		}
 
-		workerToken, err := utils.SH(fmt.Sprintf("k0s token create --role=worker")) //nolint:errcheck
+		workerToken, err := utils.SH("k0s token create --role=worker") //nolint:errcheck
 		if err != nil {
-			c.Logger.Error(err)
+			c.Logger.Errorf("failed to create worker token: %s", err)
 		}
-		if workerToken != "" {
+		// we don't want to set the output if there is an error
+		if err == nil && workerToken != "" {
 			err := c.Client.Set("workertoken", "token", workerToken)
 			if err != nil {
 				c.Logger.Error(err)
 			}
 		}
 
-		kubeconfig, err := utils.SH(fmt.Sprintf("k0s config create")) //nolint:errcheck
+		kubeconfig, err := utils.SH("k0s config create") //nolint:errcheck
 		if err != nil {
 			c.Logger.Error(err)
 			return err
