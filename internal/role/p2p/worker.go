@@ -39,8 +39,26 @@ func Worker(cc *config.Config, pconfig *providerConfig.Config) role.Role { //nol
 
 		var svc machine.Service
 		var err error
+		var svcName string
 
-		if pconfig.IsK3sAgentEnabled() {
+		if pconfig.P2P.Distribution != "" {
+			svcName = pconfig.P2P.Distribution
+		}
+
+		if pconfig.IsK3sEnabled() {
+			svcName = "k3s"
+		}
+
+		if pconfig.IsK0sEnabled() {
+			svcName = "k0s"
+		}
+
+		if svcName == "" {
+			c.Logger.Info("No distribution found, defaulting to k3s")
+			svcName = "k3s"
+		}
+
+		if svcName == "k3s" {
 			nodeToken, _ := c.Client.Get("nodetoken", "token")
 			if nodeToken == "" {
 				c.Logger.Info("node token not there still..")
@@ -118,7 +136,7 @@ func Worker(cc *config.Config, pconfig *providerConfig.Config) role.Role { //nol
 			}
 		}
 
-		if pconfig.IsK0sWorkerEnabled() {
+		if svcName == "k0s" {
 			nodeToken, _ := c.Client.Get("workertoken", "token")
 			if nodeToken == "" {
 				c.Logger.Info("node token not there still..")
