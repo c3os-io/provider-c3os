@@ -168,7 +168,7 @@ func Worker(cc *config.Config, pconfig *providerConfig.Config) role.Role { //nol
 			if k0sbin == "" {
 				return fmt.Errorf("no k0s binary found (?)")
 			}
-			if err := svc.OverrideCmd(fmt.Sprintf("%s %s", k0sbin, strings.Join(args, " "))); err != nil {
+			if err := svc.OverrideCmd(fmt.Sprintf("%s worker %s", k0sbin, strings.Join(args, " "))); err != nil {
 				return err
 			}
 		}
