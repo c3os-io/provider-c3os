@@ -94,8 +94,6 @@ func propagateMasterData(ip string, c *service.RoleConfig, clusterInit, ha bool,
 
 		// we don't want to set the output if there is an error
 		if err == nil && controllerToken != "" {
-			// TODO: remove logger
-			c.Logger.Info("controller token is ", controllerToken)
 			err := c.Client.Set("controllertoken", "token", controllerToken)
 			if err != nil {
 				c.Logger.Error(err)
