@@ -112,17 +112,36 @@ func propagateMasterData(ip string, c *service.RoleConfig, clusterInit, ha bool,
 }
 
 func genArgs(pconfig *providerConfig.Config, ip, ifaceIP string) (args []string) {
+	var svcName string
 
-	if pconfig.P2P.UseVPNWithKubernetes() {
-		args = append(args, "--flannel-iface=edgevpn0")
+	if pconfig.P2P.Distribution != "" {
+		svcName = pconfig.P2P.Distribution
 	}
 
-	if pconfig.KubeVIP.IsEnabled() {
-		args = append(args, fmt.Sprintf("--tls-san=%s", ip), fmt.Sprintf("--node-ip=%s", ifaceIP))
+	if pconfig.IsK3sEnabled() {
+		svcName = "k3s"
 	}
 
-	if pconfig.K3s.EmbeddedRegistry {
-		args = append(args, "--embedded-registry")
+	if pconfig.IsK0sEnabled() {
+		svcName = "k0s"
+	}
+
+	if svcName == "" {
+		svcName = "k3s"
+	}
+
+	if svcName == "k3s" {
+		if pconfig.P2P.UseVPNWithKubernetes() {
+			args = append(args, "--flannel-iface=edgevpn0")
+		}
+
+		if pconfig.KubeVIP.IsEnabled() {
+			args = append(args, fmt.Sprintf("--tls-san=%s", ip), fmt.Sprintf("--node-ip=%s", ifaceIP))
+		}
+
+		if pconfig.K3s.EmbeddedRegistry {
+			args = append(args, "--embedded-registry")
+		}
 	}
 
 	return
