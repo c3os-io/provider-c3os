@@ -131,13 +131,31 @@ func genArgs(pconfig *providerConfig.Config, ip, ifaceIP string) (args []string)
 func genEnv(ha, clusterInit bool, c *service.Client, pConfig *providerConfig.Config) (env map[string]string) {
 	env = make(map[string]string)
 
+	var svcName string
+
+	if pConfig.P2P.Distribution != "" {
+		svcName = pConfig.P2P.Distribution
+	}
+
+	if pConfig.IsK3sEnabled() {
+		svcName = "k3s"
+	}
+
+	if pConfig.IsK0sEnabled() {
+		svcName = "k0s"
+	}
+
+	if svcName == "" {
+		svcName = "k3s"
+	}
+
 	if ha && !clusterInit {
-		if pConfig.IsK3sEnabled() {
+		if svcName == "k3s" {
 			nodeToken, _ := c.Get("nodetoken", "token")
 			env["K3S_TOKEN"] = nodeToken
 		}
 
-		if pConfig.IsK0sEnabled() {
+		if svcName == "k0s" {
 			nodeToken, _ := c.Get("controllertoken", "token")
 			env["K0S_TOKEN"] = nodeToken
 		}
@@ -177,11 +195,29 @@ func guessIP(pconfig *providerConfig.Config) string {
 }
 
 func waitForMasterHAInfo(c *service.RoleConfig, pconfig *providerConfig.Config) bool {
-	var nodeToken string
+	var nodeToken, svcName string
+
+	if pconfig.P2P.Distribution != "" {
+		svcName = pconfig.P2P.Distribution
+	}
+
 	if pconfig.IsK3sEnabled() {
+		svcName = "k3s"
+	}
+
+	if pconfig.IsK0sEnabled() {
+		svcName = "k0s"
+	}
+
+	if svcName == "" {
+		c.Logger.Info("No distribution found, defaulting to k3s")
+		svcName = "k3s"
+	}
+
+	if svcName == "k3s" {
 		nodeToken, _ = c.Client.Get("nodetoken", "token")
 	}
-	if pconfig.IsK0sEnabled() {
+	if svcName == "k0s" {
 		nodeToken, _ = c.Client.Get("controllertoken", "token")
 	}
 	if nodeToken == "" {
@@ -253,11 +289,11 @@ func Master(cc *config.Config, pconfig *providerConfig.Config, clusterInit, ha b
 		var svc machine.Service
 		var err error
 
-		if pconfig.IsK3sEnabled() {
+		if svcName == "k3s" {
 			svc, err = machine.K3s()
 		}
 
-		if pconfig.IsK0sEnabled() {
+		if svcName == "k0s" {
 			svc, err = machine.K0s()
 		}
 
