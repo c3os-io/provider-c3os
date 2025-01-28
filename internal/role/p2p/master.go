@@ -267,11 +267,11 @@ func Master(cc *config.Config, pconfig *providerConfig.Config, clusterInit, ha b
 
 		var envUnit string
 
-		if pconfig.IsK3sEnabled() {
+		if svcName == "k3s" {
 			envUnit = machine.K3sEnvUnit(svcName)
 		}
 
-		if pconfig.IsK0sEnabled() {
+		if svcName == "k0s" {
 			envUnit = machine.K0sEnvUnit(svcName)
 		}
 
