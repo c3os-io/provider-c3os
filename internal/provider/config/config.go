@@ -12,7 +12,8 @@ type P2P struct {
 	DisableDHT   bool `yaml:"disable_dht,omitempty"`
 	Auto         Auto `yaml:"auto,omitempty"`
 
-	DynamicRoles bool `yaml:"dynamic_roles,omitempty"`
+	DynamicRoles bool   `yaml:"dynamic_roles,omitempty"`
+	Distribution string `yaml:"distribution,omitempty"`
 }
 
 type VPN struct {

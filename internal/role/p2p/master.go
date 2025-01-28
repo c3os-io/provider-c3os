@@ -228,12 +228,21 @@ func Master(cc *config.Config, pconfig *providerConfig.Config, clusterInit, ha b
 		env := genEnv(ha, clusterInit, c.Client, pconfig)
 
 		var svcName string
+		if pconfig.P2P.Distribution != "" {
+			svcName = pconfig.P2P.Distribution
+		}
+
 		if pconfig.IsK3sEnabled() {
 			svcName = "k3s"
 		}
 
 		if pconfig.IsK0sEnabled() {
 			svcName = "k0s"
+		}
+
+		if svcName == "" {
+			c.Logger.Info("No distribution found, defaulting to k3s")
+			svcName = "k3s"
 		}
 
 		// Configure k8s service to start on edgevpn0
