@@ -37,26 +37,9 @@ func propagateMasterData(ip string, c *service.RoleConfig, clusterInit, ha bool,
 		return nil
 	}
 
-	var svcName string
+	distro := pconfig.K8sDistro()
 
-	if pconfig.P2P.Distribution != "" {
-		svcName = pconfig.P2P.Distribution
-	}
-
-	if pconfig.IsK3sEnabled() {
-		svcName = "k3s"
-	}
-
-	if pconfig.IsK0sEnabled() {
-		svcName = "k0s"
-	}
-
-	if svcName == "" {
-		c.Logger.Info("No distribution found, defaulting to k3s")
-		svcName = "k3s"
-	}
-
-	if svcName == "k3s" {
+	if distro == providerConfig.K3sDistro {
 		tokenB, err := os.ReadFile("/var/lib/rancher/k3s/server/node-token")
 		if err != nil {
 			c.Logger.Error(err)
@@ -86,7 +69,7 @@ func propagateMasterData(ip string, c *service.RoleConfig, clusterInit, ha bool,
 		}
 	}
 
-	if svcName == "k0s" {
+	if distro == providerConfig.K0sDistro {
 		controllerToken, err := utils.SH("k0s token create --role=controller") //nolint:errcheck
 		if err != nil {
 			c.Logger.Errorf("failed to create controller token: %s", err)
@@ -133,25 +116,9 @@ func propagateMasterData(ip string, c *service.RoleConfig, clusterInit, ha bool,
 }
 
 func genArgs(pconfig *providerConfig.Config, ip, ifaceIP string) (args []string) {
-	var svcName string
+	distro := pconfig.K8sDistro()
 
-	if pconfig.P2P.Distribution != "" {
-		svcName = pconfig.P2P.Distribution
-	}
-
-	if pconfig.IsK3sEnabled() {
-		svcName = "k3s"
-	}
-
-	if pconfig.IsK0sEnabled() {
-		svcName = "k0s"
-	}
-
-	if svcName == "" {
-		svcName = "k3s"
-	}
-
-	if svcName == "k3s" {
+	if distro == providerConfig.K3sDistro {
 		if pconfig.P2P.UseVPNWithKubernetes() {
 			args = append(args, "--flannel-iface=edgevpn0")
 		}
@@ -171,31 +138,15 @@ func genArgs(pconfig *providerConfig.Config, ip, ifaceIP string) (args []string)
 func genEnv(ha, clusterInit bool, c *service.Client, pConfig *providerConfig.Config) (env map[string]string) {
 	env = make(map[string]string)
 
-	var svcName string
-
-	if pConfig.P2P.Distribution != "" {
-		svcName = pConfig.P2P.Distribution
-	}
-
-	if pConfig.IsK3sEnabled() {
-		svcName = "k3s"
-	}
-
-	if pConfig.IsK0sEnabled() {
-		svcName = "k0s"
-	}
-
-	if svcName == "" {
-		svcName = "k3s"
-	}
+	distro := pConfig.K8sDistro()
 
 	if ha && !clusterInit {
-		if svcName == "k3s" {
+		if distro == providerConfig.K3sDistro {
 			nodeToken, _ := c.Get("nodetoken", "token")
 			env["K3S_TOKEN"] = nodeToken
 		}
 
-		if svcName == "k0s" {
+		if distro == providerConfig.K0sDistro {
 			nodeToken, _ := c.Get("controllertoken", "token")
 			env["K0S_TOKEN"] = nodeToken
 		}
@@ -235,29 +186,14 @@ func guessIP(pconfig *providerConfig.Config) string {
 }
 
 func waitForMasterHAInfo(c *service.RoleConfig, pconfig *providerConfig.Config) bool {
-	var nodeToken, svcName string
+	var nodeToken string
 
-	if pconfig.P2P.Distribution != "" {
-		svcName = pconfig.P2P.Distribution
-	}
+	distro := pconfig.K8sDistro()
 
-	if pconfig.IsK3sEnabled() {
-		svcName = "k3s"
-	}
-
-	if pconfig.IsK0sEnabled() {
-		svcName = "k0s"
-	}
-
-	if svcName == "" {
-		c.Logger.Info("No distribution found, defaulting to k3s")
-		svcName = "k3s"
-	}
-
-	if svcName == "k3s" {
+	if distro == providerConfig.K3sDistro {
 		nodeToken, _ = c.Client.Get("nodetoken", "token")
 	}
-	if svcName == "k0s" {
+	if distro == providerConfig.K0sDistro {
 		nodeToken, _ = c.Client.Get("controllertoken", "token")
 	}
 	if nodeToken == "" {
@@ -303,23 +239,8 @@ func Master(cc *config.Config, pconfig *providerConfig.Config, clusterInit, ha b
 
 		env := genEnv(ha, clusterInit, c.Client, pconfig)
 
-		var svcName string
-		if pconfig.P2P.Distribution != "" {
-			svcName = pconfig.P2P.Distribution
-		}
-
-		if pconfig.IsK3sEnabled() {
-			svcName = "k3s"
-		}
-
-		if pconfig.IsK0sEnabled() {
-			svcName = "k0s"
-		}
-
-		if svcName == "" {
-			c.Logger.Info("No distribution found, defaulting to k3s")
-			svcName = "k3s"
-		}
+		distro := pconfig.K8sDistro()
+		svcName := distro // because we are on the master role it will always be identical to distro
 
 		// Configure k8s service to start on edgevpn0
 		c.Logger.Info(fmt.Sprintf("Configuring %s", svcName))
@@ -329,11 +250,11 @@ func Master(cc *config.Config, pconfig *providerConfig.Config, clusterInit, ha b
 		var svc machine.Service
 		var err error
 
-		if svcName == "k3s" {
+		if distro == providerConfig.K3sDistro {
 			svc, err = machine.K3s()
 		}
 
-		if svcName == "k0s" {
+		if distro == providerConfig.K0sDistro {
 			svc, err = machine.K0s()
 		}
 
@@ -343,11 +264,11 @@ func Master(cc *config.Config, pconfig *providerConfig.Config, clusterInit, ha b
 
 		var envUnit string
 
-		if svcName == "k3s" {
+		if distro == providerConfig.K3sDistro {
 			envUnit = machine.K3sEnvUnit(svcName)
 		}
 
-		if svcName == "k0s" {
+		if distro == providerConfig.K0sDistro {
 			envUnit = machine.K0sEnvUnit(svcName)
 		}
 
@@ -389,16 +310,16 @@ func Master(cc *config.Config, pconfig *providerConfig.Config, clusterInit, ha b
 
 		var k8sBin string
 
-		if svcName == "k3s" {
+		if distro == providerConfig.K3sDistro {
 			k8sBin = utils.K3sBin()
 		}
 
-		if svcName == "k0s" {
+		if distro == providerConfig.K0sDistro {
 			k8sBin = utils.K0sBin()
 		}
 
 		if k8sBin == "" {
-			return fmt.Errorf("no %s binary found (?)", svcName)
+			return fmt.Errorf("no %s binary found (?)", distro)
 		}
 
 		if err := svc.OverrideCmd(fmt.Sprintf("%s server %s", k8sBin, strings.Join(args, " "))); err != nil {
